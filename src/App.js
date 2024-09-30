@@ -1,3 +1,4 @@
+// src/App.js
 import React, { useState } from "react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -11,31 +12,34 @@ const App = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
+  // This ensures app verification is disabled only in local development
+  if (window.location.hostname === "localhost") {
+    auth.settings.appVerificationDisabledForTesting = true;
+  }
+
+  // Set up Recaptcha
   const setupRecaptcha = () => {
     window.recaptchaVerifier = new RecaptchaVerifier(
-      "recaptcha-container", // Make sure to match your div ID
+      "recaptcha-container",
       {
-        size: "invisible", // You can also use 'normal' for a visible recaptcha
+        size: "invisible",
         callback: (response) => {
-          console.log("Recaptcha solved");
+          console.log("Recaptcha verified");
         },
         'expired-callback': () => {
-          console.error("Recaptcha expired. Please try again.");
+          setMessage("Recaptcha expired. Please try again.");
         },
       },
       auth
     );
-
-    window.recaptchaVerifier.render().then(function (widgetId) {
-      window.recaptchaWidgetId = widgetId;
-    });
   };
 
+  // Request OTP
   const requestOtp = async () => {
     setMessage("");
     setError("");
     if (phoneNumber.length >= 10) {
-      setupRecaptcha(); // Set up Recaptcha
+      setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
       try {
         const confirmationResult = await signInWithPhoneNumber(
@@ -45,7 +49,7 @@ const App = () => {
         );
         setVerificationId(confirmationResult.verificationId);
         setShowOtpInput(true);
-        setMessage("OTP sent successfully. Please check your phone.");
+        setMessage("OTP sent successfully.");
       } catch (err) {
         setError("Failed to send OTP. Try again later.");
       }
@@ -54,9 +58,8 @@ const App = () => {
     }
   };
 
+  // Verify OTP
   const verifyOtp = async () => {
-    setMessage("");
-    setError("");
     if (otp.length === 6 && verificationId) {
       try {
         const confirmationResult = await window.confirmationResult.confirm(otp);
@@ -66,7 +69,7 @@ const App = () => {
         setError("Invalid OTP. Please try again.");
       }
     } else {
-      setError("Please enter a valid 6-digit OTP.");
+      setError("Please enter a valid OTP.");
     }
   };
 
@@ -75,7 +78,7 @@ const App = () => {
       <h1>OTP Login</h1>
       <div>
         <PhoneInput
-          country={"in"} // Set your default country code
+          country={"in"} // Default country code
           value={phoneNumber}
           onChange={setPhoneNumber}
         />
